@@ -122,6 +122,23 @@
 		evt.preventDefault();
 		Module.pico8DragStop();
 	}
+
+	// download (pico-8 0.2.4d web exports can save a .wav file)
+	function download_browser_file(filename, contents)
+	{
+	  var element = document.createElement('a');
+	  if (filename.substr(filename.length - 7) == ".p8.png")
+	  	element.setAttribute('href', 'data:image/png;base64,' + encodeURIComponent(contents));
+	  else if (filename.substr(filename.length - 4) == ".wav")
+	  	element.setAttribute('href', 'data:audio/x-wav;base64,' + encodeURIComponent(contents));
+	  else
+	  	element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(contents));
+	  element.setAttribute('download', filename);
+	  element.style.display = 'none';
+	  document.body.appendChild(element);
+	  element.click();
+	  document.body.removeChild(element);
+	}
 	// --------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -615,7 +632,7 @@
 
 		}
 		e.type = "application/javascript";
-		e.src = "trash39.js";
+		e.src = "trash48.js";
 		e.id = "e_script";
 		
 		document.body.appendChild(e); // load and run
@@ -638,7 +655,7 @@
 
 		// install drag&drop listeners
 		{
-			let canvas = p8_document().getElementById("canvas");
+			let canvas = document.getElementById("canvas");
 			if (canvas)
 			{
 				canvas.addEventListener('dragenter', dragover, false);
@@ -876,15 +893,16 @@
 	// End of gamepad code
 
 
-	// key blocker. prevent cursor keys from scrolling page while playing cart.
-	// also don't act on M, R so that can mute / reset cart
+	// key blocker. prevent browser operations while playing cart so that PICO-8 can use those keys e.g. cursors to scroll, ctrl-r to reload
 	document.addEventListener('keydown',
 	function (event) {
 		event = event || window.event;
 		if (!p8_is_running) return;
+
 		if (pico8_state.has_focus == 1)
-			if ([32, 37, 38, 39, 40, 77, 82, 80, 9].indexOf(event.keyCode) > -1)       // block cursors, M R P, tab
+			if ([32, 37, 38, 39, 40, 77, 82, 80, 9].indexOf(event.keyCode) > -1)       // block only cursors, M R P, tab
 				if (event.preventDefault) event.preventDefault();
+
 	},{passive: false});
 
 	// when using codo_textarea to determine focus, need to explicitly hand focus back when clicking a p8_menu_button
@@ -964,7 +982,7 @@ canvas{
 
 .p8_start_button{
 	cursor:pointer;
-	background:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAAAEAElEQVR4Ae2dv0/bWhSAnSiqkF6K9PICSFiqWGpIJIYWqaJVkyfUoXQpU4bs70/I0A2xMfAnsDMwVC1D06GqRKTXLKgDqqGZKlQqBaLwlAbpDX3wBqfGub42Lo7t/Pg+Wcg5HDs357v3nDVWyKgKREc86C9ILi4bl/WjcWP+FeLWfOt7pO90upcuw+U9LmsLlESYtpOLy+1qWVrcdrVsfrTeOyHNN15uf1waFPKdcgb+BHgsqLATveRL73u7V4ZEgBdDPTkBvV1SOC0obAHmzrL+QmP7m3W8to+75LhU073XCzmhEStk1H44BCNLIrtSXFvfuDYPT0GdAEVRVl+UrnXgIqCRWpDG0829kUq4+QxYW99YfVFiM0ZC3OMJgKBmQGjVz+c08363UnNPkOYMRIJBdqVo/ai/2nI8AaFW/3Pnu5r/fHb8YQ45A5EgVv9nWi2edDwBLtO193t/tmQsS7tQG905u5VaJ82SM3AJ5n7vOHBN6wgIYfub6+7czJYaJ/KTe/XIyXMlpaSbez1MmNEm3BOE9mKs8wZrSC4ud/k4dNviYQjo2jvOfdP8l1iInxzVz+5M/b5bqc1oE/mcJn2PEZQmfKmdGo/nc9pR/czpWfejbM1xWkO7WlZWisY5kH6RlVgILQhciFMCBIw0VzNg++CYctwAaQ/3WMxCRuUE0IIQAAhAAEREghL45G1j3B4cnxCDrdMDBERJIaPSgpgBgAAEAEM4eO79J0ZO6uP2tMmpFgL88jTdsgel5aYFMQMAAQiALhjCftmevi2JTl8KgT8/xhAQJZNTLVoQMwAQgABgCAdP4dt3BPRdrWlBzABAAAKAIdxTavGklzTtos0JoAUBAhAACOgnEpQgCO4/eOwlrV0tI8Av2kWbFsQMAAQgAG4CQ9gv2ZWil7Sj+hkCoqRdLdOCmAGAAAQAQzgE1l8Lgazymz1Lz5wjwC/6qy17UFpuWhAzABCAAOiCIeyX7NyxJDpni7zUEBAleuZ8xFrQk7nOxQyIpvrvDjtXfzsYRgFG9U3628HwtqABgSEcDHf/EALZu/9KJvPO2DAKMHqO2YWEjtRr9EPVHpSWe5RakOHAuIKsPjPA1YFx9TcMYQSMNsM4hMNl+5ks+mNMCKwm5GMZASGh74hKaEHMAEAAAkYdhnAgpL/+JUTez0vSlvY3EeCXwhtJUFpuWhAzABCAAOiCIeyXRmrBHpw//ihE9tV7CIiSpf1NWhAzABCAAGAIB09euSWGUg/taXrzAwL8km7uSaKyctOCmAGAAARAFwxhv2RzjzzlfbpEQJTozQ+0IGYAIAABgIB+IkEJfKJX/uYE0IIAAQgABCAAfpVYIaNSBU4AAgABCIAI+B+FU74W6MinowAAABB0RVh0TG9kZVBORwAyMDExMDIyMeNZtsEAAAAASUVORK5CYII=");
+	background:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAAADh0lEQVR4Ae2drXJbMRCF5Y5ZSINKMgUlfZo+hMew1CAsU1YQGujxQ/RpSgwyJUUpCQ9Qx916vbJ0f/Rz9R20s1V1r3PPOR9dPdzv3P96/v3inPv44bby/TL0bpG/qiGtNpvtyV/Sa8zD5tRMk4DSCdAMKNbvPx/PH/95N3yvZxiA6mbAn33A0c/vt//OSEdrjwfPZ810xJ4E1MeAub+5Kau7ra4PJsA8DwNQ1QyQ3X1l9tkSCbhyT5bfktoNJKA+BmTt/XgG6DnMAOs8DEDFGDBHtlrcw4C6GZC197sXCVgKA56ON865r59eL85Sfu//74/Xu7O9dU/4HfQ9w+4fdk9q78OAirSW303P+ttae0vaL17eU3ITlvWe1j2p98vzMrXW3nq3mHeWMwkonYAx/aWlPeLPO3fZO5ase2KeG+N6y8vDNIadJKAmBlhei+993ZV/zx+v+1E617zHeGKqr8OdnqqYrocBLTBgzBzTttrp8R60nitv+HLzyznn3O1pfjreDWCDvCdmL++HAY1p9XC/i/QdmkMkoHQCNpvtRY+n9n7P+zEzCaibAWhuLpKAmhgwVa8xw4DWGDBtr8EAGNAmA2K+c8371Hmqe2BA+wxYUheX2sOA9hlQqgd7nkkADCjBg7nvgQFtMmCMF+bYwwAEA+J8lDOjMGC5DOitf2EAqpUBYzw1Ve/DgP4YMJV35vAgDEBLZ0ANmcsvElATA3rrXxiASjPg2/fH0yyzKPfyDfXeOmn1uz8vn1VWJKCw1tojlnem3Xsnes/KM3Iv3W3tvZcPh31k53qV7X0SUFMCrB6ce28xIFXa1+HZYknqPWNmElArA3LO3u+y98NZseTv1LwJ969mSam/AwkorJX3Qn7pFh6/1/8afm7M+blFAmpigO7WafcWA6bdpz43PwNIQN8MkF7QjVxPO8OAPhJgdevcs/S+f4fDYX82yxzkfLecMwlYLgPC3196XDpdU2HZJCABhbWW3rT8m7qPmaV873vvawYMu7/mmQTUzQDrW8V0fapndeP30/4koI4E+M5dRre2OJOAOhiQ85sjGAADmGFAvwyABzAABjDDABgAA2AADGAmATAABiAYAAMQDIABCAbAAAQDYACCATAALZcBCAbAAGYY0BcDEAyAAcwwoC8GIBgAA5hhQBsMkErt99Q9ggEwgBkG1MWAMd+Q3ocBMIAZBjSqN0L9D8wPYh0pAAAAEHRFWHRMb2RlUE5HADIwMTEwMjIx41m2wQAAAABJRU5ErkJggg==");
 	-repeat center;
 	-webkit-background-size:cover; -moz-background-size:cover; -o-background-size:cover; background-size:cover;
 }
@@ -1050,7 +1068,9 @@ canvas{
 
 			<!-- used for clipboard access & keyboard input; displayed and used by PICO-8 only once needed. can be safely removed if clipboard / key presses not needed. -->
 			<!-- (needs to be inside p8_playarea so that it still works under Chrome when fullscreened) -->
-			<textarea id="codo_textarea" class="emscripten" style="position:absolute; left:-9999px; height:0px; overflow:hidden"></textarea>
+			<!-- 0.2.5: added "display:none"; pico8.js shows on demand to avoid mac osx accent character selector // https://www.lexaloffle.com/bbs/?tid=47743 -->
+
+			<textarea id="codo_textarea" class="emscripten" style="display:none; position:absolute; left:-9999px; height:0px; overflow:hidden"></textarea>
 
 		</div> <!--p8_playarea -->
 
